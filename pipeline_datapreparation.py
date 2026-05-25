@@ -47,6 +47,7 @@ SELECTED_VARIABLES = [
 
 
 # Apenas variáveis trimestrais é que necessitam de interpolação
+# De modo a evitar Data Leakage, os métodos de interpolação foram decididos com base nos dados de treino em 04-DataProcessing.ipynb
 FIXED_INTERPOLATION_METHODS = {
     "EMPENT_PT_ea-qd": "cubic",
     "DFGDP_PT_ea-qd": "spline",
