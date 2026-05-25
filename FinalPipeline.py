@@ -16,58 +16,100 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 PTINFO_PATH = PROJECT_ROOT / "dados" / "EA-MD-QD-2026-02" / "PTdata.xlsx"
 FRED_PATH = PROJECT_ROOT / "dados" / "2026-01-MD.csv"
 TARGET_COL = "inflation_target"
-OUTLIER_PREPROCESSOR_PATH = PROJECT_ROOT / "models" / "standardize_features.pkl"
+RIDGE_MODEL_TYPE = "ridge"
+LGBM_MODEL_TYPE = "lgbm"
 
-
-SELECTED_VARIABLES = [
-    'PCEPI_fred-md',
-    'HICPOV_PT_ea-md',
-    'HICPNEF_PT_ea-md',
-    'HICPNG_PT_ea-md',
-    'PPIPT_ppi',
-    'HICPSV_PT_ea-md',
-    'CCI_PT_ea-md',
-    'EXPGS_PT_ea-qd',
-    'epu_pt_epu',
+RIDGE_SELECTED_VARIABLES = [
+    "PCEPI_fred-md",
+    "HICPOV_PT_ea-md",
+    "HICPNEF_PT_ea-md",
+    "HICPNG_PT_ea-md",
+    "PPIPT_ppi",
+    "HICPSV_PT_ea-md",
+    "CCI_PT_ea-md",
+    "EXPGS_PT_ea-qd",
+    "epu_pt_epu",
 ]
 
+LGBM_SELECTED_VARIABLES = [
+    "epu_pt_epu",
+    "ULCIN_PT_ea-qd",
+    "EXPGS_PT_ea-qd",
+    "IMPGS_PT_ea-qd",
+    "CCI_PT_ea-md",
+    "GDP_PT_ea-qd",
+    "UNETOT_PT_ea-md",
+    "PPIPT_ppi",
+]
 
-# Apenas variáveis trimestrais é que necessitam de interpolação
+LGBM_LAG_SOURCE_VARIABLES = []
+
+
+# Apenas vari?veis trimestrais ? que necessitam de interpola??o
 FIXED_INTERPOLATION_METHODS = {
     "EXPGS_PT_ea-qd": "cubic",
+    "GDP_PT_ea-qd": "linear",
+    "IMPGS_PT_ea-qd": "cubic",
+    "ULCIN_PT_ea-qd": "spline",
 }
 
-# Variáveis com ragged edges necessitam do imputaçao implementada com ARIMA
+# Vari?veis com ragged edges necessitam do imputa??o implementada com ARIMA
 FIXED_ARIMA_MODELS = {
     "EXPGS_PT_ea-qd": (8, 0, 0),
+    "GDP_PT_ea-qd": (7, 0, 0),
+    "IMPGS_PT_ea-qd": (7, 0, 0),
+    "ULCIN_PT_ea-qd": (2, 0, 2),
 }
 
-OUTLIER_COLUMNS = [
-    'PCEPI_fred-md',
-    'HICPOV_PT_ea-md',
-    'HICPNG_PT_ea-md',
-    'HICPSV_PT_ea-md',
-    'EXPGS_PT_ea-qd',
-    'PPIPT_ppi',
-    'epu_pt_epu',
-    'HICPNEF_PT_ea-md',
-    'CCI_PT_ea-md',
-    'inflation_target'
-]
-
-SELECTED_LAGS = {
-    "HICPOV_PT_ea-md": [12],
-    "HICPNEF_PT_ea-md": [12],
-    "HICPSV_PT_ea-md": [12],
-    "HICPNG_PT_ea-md": [12],
-    "epu_pt_epu": [6],
-    "PPIPT_ppi": [1],
-    "inflation_target": [1]
+MODEL_CONFIGS = {
+    RIDGE_MODEL_TYPE: {
+        "selected_variables": RIDGE_SELECTED_VARIABLES,
+        "lag_source_variables": [],
+        "outlier_columns": RIDGE_SELECTED_VARIABLES + [TARGET_COL],
+        "outlier_preprocessor_path": PROJECT_ROOT / "models" / "standardize_features.pkl",
+        "selected_lags": {
+            "HICPOV_PT_ea-md": [12],
+            "HICPNEF_PT_ea-md": [12],
+            "HICPSV_PT_ea-md": [12],
+            "HICPNG_PT_ea-md": [12],
+            "epu_pt_epu": [6],
+            "PPIPT_ppi": [1],
+            TARGET_COL: [1],
+        },
+    },
+    LGBM_MODEL_TYPE: {
+        "selected_variables": LGBM_SELECTED_VARIABLES,
+        "lag_source_variables": LGBM_LAG_SOURCE_VARIABLES,
+        "outlier_columns": LGBM_SELECTED_VARIABLES + [TARGET_COL],
+        "outlier_preprocessor_path": PROJECT_ROOT / "models" / "standardize_features_lgbm.pkl",
+        "selected_lags": {
+            "epu_pt_epu": [6, 7, 8],
+            "GDP_PT_ea-qd": [1, 2, 3, 4, 5],
+            "IMPGS_PT_ea-qd": [2, 3],
+            "PPIPT_ppi": [1, 2, 3, 4, 6, 7, 8, 9, 10],
+            TARGET_COL: [1],
+        },
+    },
 }
+
+SELECTED_VARIABLES = MODEL_CONFIGS[RIDGE_MODEL_TYPE]["selected_variables"]
+OUTLIER_COLUMNS = MODEL_CONFIGS[RIDGE_MODEL_TYPE]["outlier_columns"]
+SELECTED_LAGS = MODEL_CONFIGS[RIDGE_MODEL_TYPE]["selected_lags"]
 
 FRED_COLUMNS = [
     "PCEPI",
 ]
+
+
+def normalize_model_type(model_type=None):
+    resolved = (model_type or RIDGE_MODEL_TYPE).lower()
+    if resolved not in MODEL_CONFIGS:
+        raise ValueError(f"Unsupported model_type: {model_type}")
+    return resolved
+
+
+def get_model_config(model_type=None):
+    return MODEL_CONFIGS[normalize_model_type(model_type)]
 
 # Lê um dataset, converte Date para índice temporal e remove colunas que não entram na pipeline.
 def load_dataset(dados):
@@ -90,11 +132,13 @@ def load_dataset(dados):
 ######################
 
 # Mantém apenas as variáveis finais decididas para a pipeline.
-def select_variables(dados, selected_variables=None):
-    selected_variables = selected_variables or SELECTED_VARIABLES
+def select_variables(dados, selected_variables=None, extra_variables=None, model_type=RIDGE_MODEL_TYPE):
+    config = get_model_config(model_type)
+    selected_variables = selected_variables or config["selected_variables"]
+    extra_variables = extra_variables or config["lag_source_variables"]
     df = load_dataset(dados)
 
-    columns_to_keep = list(selected_variables)
+    columns_to_keep = list(dict.fromkeys([*selected_variables, *extra_variables]))
     if TARGET_COL in df.columns and TARGET_COL not in columns_to_keep:
         columns_to_keep.append(TARGET_COL)
 
@@ -490,13 +534,14 @@ def apply_ragged_edge_treatment(df, arima_models=None, strict=True):
 #########################
 
 # Monta o dataset em nível esperado pelo preprocessor de outliers.
-def build_outlier_input(dados, prepared_levels):
+def build_outlier_input(dados, prepared_levels, outlier_columns=None, model_type=RIDGE_MODEL_TYPE):
+    outlier_columns = outlier_columns or get_model_config(model_type)["outlier_columns"]
     raw = load_dataset(dados)
-    missing_columns = [col for col in OUTLIER_COLUMNS if col not in raw.columns and col not in prepared_levels.columns]
+    missing_columns = [col for col in outlier_columns if col not in raw.columns and col not in prepared_levels.columns]
     if missing_columns:
         raise KeyError(f"Missing required columns for outlier treatment: {missing_columns}")
 
-    df_out = raw.reindex(columns=OUTLIER_COLUMNS).copy()
+    df_out = raw.reindex(columns=outlier_columns).copy()
     for col in prepared_levels.columns:
         if col in df_out.columns:
             df_out[col] = prepared_levels[col]
@@ -505,11 +550,17 @@ def build_outlier_input(dados, prepared_levels):
 
 
 # Aplica o transformer de outliers ao dataset em nível preparado.
-def apply_outlier_treatment(dados, prepared_levels):
-    df_out = build_outlier_input(dados, prepared_levels)
-    transformer = joblib.load(OUTLIER_PREPROCESSOR_PATH)
+def apply_outlier_treatment(dados, prepared_levels, transformer_path=None, outlier_columns=None, model_type=RIDGE_MODEL_TYPE):
+    config = get_model_config(model_type)
+    df_out = build_outlier_input(
+        dados,
+        prepared_levels,
+        outlier_columns=outlier_columns or config["outlier_columns"],
+        model_type=model_type,
+    )
+    transformer = joblib.load(transformer_path or config["outlier_preprocessor_path"])
     transformed = transformer.transform(df_out)
-    return pd.DataFrame(transformed, index=df_out.index, columns=OUTLIER_COLUMNS)
+    return pd.DataFrame(transformed, index=df_out.index, columns=df_out.columns)
 
 ############################################################################
 
@@ -518,13 +569,13 @@ def apply_outlier_treatment(dados, prepared_levels):
 # SELECAO DE LAGS
 #################
 
-def validate_selected_lags(selected_variables=None, target_col=TARGET_COL):
+def validate_selected_lags(selected_variables=None, target_col=TARGET_COL, lag_map=None, model_type=RIDGE_MODEL_TYPE):
     # Validação removida para permitir variáveis sem lags definidos
     pass
 
 
-def apply_lag_selection(df, lag_map=None, target_col=TARGET_COL):
-    lag_map = lag_map or SELECTED_LAGS
+def apply_lag_selection(df, lag_map=None, target_col=TARGET_COL, model_type=RIDGE_MODEL_TYPE):
+    lag_map = lag_map or get_model_config(model_type)["selected_lags"]
     lagged_df = pd.DataFrame(index=df.index)
     lag_rows = []
 
@@ -550,7 +601,8 @@ def apply_lag_selection(df, lag_map=None, target_col=TARGET_COL):
 
 
 # Prepara um dataset com ou sem seleção de variáveis, interpolação ja definida por variavel, tratamento de ragged edges e opção de estacionarização no output.
-def prepare_dataset(dados, select_features=True, stationary=False, treat_outliers=False, create_lags=False):
+def prepare_dataset(dados, select_features=True, stationary=False, treat_outliers=False, create_lags=False, model_type=RIDGE_MODEL_TYPE):
+    config = get_model_config(model_type)
     if stationary and treat_outliers:
         raise ValueError("Outlier treatment is defined only for the level dataset. Use stationary=False when treat_outliers=True.")
     if stationary and not select_features:
@@ -562,20 +614,40 @@ def prepare_dataset(dados, select_features=True, stationary=False, treat_outlier
     if create_lags and stationary:
         raise ValueError("Lag creation requires stationary=False.")
 
-    selected = select_variables(dados) if select_features else load_dataset(dados)
+    selected = (
+        select_variables(
+            dados,
+            selected_variables=config["selected_variables"],
+            extra_variables=config["lag_source_variables"] if create_lags else None,
+            model_type=model_type,
+        )
+        if select_features
+        else load_dataset(dados)
+    )
     interpolated, interpolation_report = apply_interpolation(selected)
     prepared_levels, ragged_report = apply_ragged_edge_treatment(interpolated, strict=select_features)
     prepared_stationary = build_stationary_panel(prepared_levels)
-    prepared_outliers = apply_outlier_treatment(dados, prepared_levels) if treat_outliers else None
+    prepared_outliers = (
+        apply_outlier_treatment(dados, prepared_levels, model_type=model_type)
+        if treat_outliers
+        else None
+    )
     prepared_lags = None
     lag_report = None
 
     if create_lags:
-        validate_selected_lags()
-        lag_source = prepared_outliers if treat_outliers else prepared_levels
-        lagged_only, lag_report = apply_lag_selection(lag_source)
+        validate_selected_lags(model_type=model_type)
+        lag_source = prepared_levels.copy()
+        if prepared_outliers is not None:
+            for col in prepared_outliers.columns:
+                lag_source[col] = prepared_outliers[col]
+
+        lagged_only, lag_report = apply_lag_selection(lag_source, model_type=model_type)
+        base_columns = [col for col in config["selected_variables"] if col in lag_source.columns]
+        if TARGET_COL in lag_source.columns:
+            base_columns.append(TARGET_COL)
         prepared_lags = pd.concat(
-            [lag_source, lagged_only.drop(columns=[TARGET_COL], errors="ignore")],
+            [lag_source.loc[:, base_columns], lagged_only.drop(columns=[TARGET_COL], errors="ignore")],
             axis=1,
         )
 
@@ -603,7 +675,7 @@ def prepare_dataset(dados, select_features=True, stationary=False, treat_outlier
 
 
 # Aplica a mesma pipeline a vários datasets, por exemplo treino e teste.
-def prepare_datasets(datasets, select_features=True, stationary=False, treat_outliers=False, create_lags=False):
+def prepare_datasets(datasets, select_features=True, stationary=False, treat_outliers=False, create_lags=False, model_type=RIDGE_MODEL_TYPE):
     return {
         name: prepare_dataset(
             dados,
@@ -611,6 +683,7 @@ def prepare_datasets(datasets, select_features=True, stationary=False, treat_out
             stationary=stationary,
             treat_outliers=treat_outliers,
             create_lags=create_lags,
+            model_type=model_type,
         )
         for name, dados in datasets.items()
     }
