@@ -25,7 +25,7 @@ Se usar VS Code ou Jupyter, selecionar o interpretador Python do ambiente `.venv
 |---|---|
 | `dados/` | Fontes originais e datasets processados (treino, teste, dataset consolidado) |
 | `models/` | Modelos finais treinados (`.pkl`) e transformadores de pré-processamento |
-| `Imagens/` | ALgumas figuras geradas pelos notebooks |
+| `Imagens/`, | ALgumas figuras geradas pelos notebooks |
 | `pipeline_datapreparation.py` | Pipeline de preparação (interpolação, ragged edges, estacionarização, outliers, lags, scaling) |
 | `FinalPipeline.py` | Classe `InflationModel` para produção (fit/predict/forecast) |
 | `routine_data.py` | Utilitários de leitura de dados |
