@@ -25,12 +25,15 @@ Se usar VS Code ou Jupyter, selecionar o interpretador Python do ambiente `.venv
 |---|---|
 | `dados/` | Fontes originais e datasets processados (treino, teste, dataset consolidado) |
 | `models/` | Modelos finais treinados (`.pkl`) e transformadores de pré-processamento |
-| `Imagens/` | Imagens geradas pelos notebooks 
+| `Imagens/` | Figuras geradas pelos notebooks |
 | `pipeline_datapreparation.py` | Pipeline de preparação (interpolação, ragged edges, estacionarização, outliers, lags, scaling) |
 | `FinalPipeline.py` | Classe `InflationModel` para produção (fit/predict/forecast) |
 | `routine_data.py` | Utilitários de leitura de dados |
 | `find_best_seed_CC_VAR.py` | Procura de seed para o CC-VAR |
 | `requirements.txt` | Dependências Python |
+| `GRUPO_11.pdf` | Relatório final do projeto |
+| `GRUPO_11.pptx` | Apresentação final |
+| `Poster_GRUPO_11.pdf` | Poster do projeto |
 
 ## Sequência de notebooks
 
