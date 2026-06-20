@@ -1,3 +1,16 @@
+# 📈 Portuguese Inflation Forecasting — Time Series & ML
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
+![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=flat&logo=jupyter&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-9C27B0?style=flat)
+
+End-to-end forecasting pipeline predicting **Portuguese CPI inflation (YoY %)** from national, European, and US macroeconomic indicators — comparing classical econometric models (ARIMA, VAR, CC-VAR) with Machine Learning (Ridge, Random Forest, LightGBM).
+
+**Client:** Banco de Portugal · **Institution:** ISCTE 2025/2026 · **Live dashboard:** https://inflationforecast.netlify.app/dashboard
+
+---
+
 # Previsão da Inflação em Portugal — Modelos de Machine Learning
 
 Projeto Final Aplicado em Ciência de Dados · ISCTE 2025/2026 · **Grupo 11**
@@ -36,8 +49,6 @@ Se usar VS Code ou Jupyter, selecionar o interpretador Python do ambiente `.venv
 | `Poster_GRUPO_11.pdf` | Poster do projeto |
 
 ## Sequência de notebooks
-
-Os notebooks estão numerados pela ordem do fluxo de trabalho, da preparação dos dados à avaliação final:
 
 | Notebook | Papel |
 |---|---|
