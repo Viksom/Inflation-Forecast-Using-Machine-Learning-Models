@@ -8,7 +8,9 @@
 End-to-end forecasting pipeline predicting **Portuguese CPI inflation (YoY %)** from national, European, and US macroeconomic indicators — comparing classical econometric models (ARIMA, VAR, CC-VAR) with Machine Learning (Ridge, Random Forest, LightGBM).
 
 **Client:** Banco de Portugal 
+
 **Institution:** ISCTE 2025/2026
+
 **Live dashboard:** https://inflationforecast.netlify.app/dashboard
 
 ---
