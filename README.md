@@ -3,7 +3,6 @@
 ![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=flat&logo=jupyter&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat&logo=scikit-learn&logoColor=white)
-![LightGBM](https://img.shields.io/badge/LightGBM-9C27B0?style=flat)
 
 End-to-end forecasting pipeline predicting **Portuguese CPI inflation (YoY %)** from national, European, and US macroeconomic indicators — comparing classical econometric models (ARIMA, VAR, CC-VAR) with Machine Learning (Ridge, Random Forest, LightGBM).
 
